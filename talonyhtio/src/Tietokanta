@@ -1,0 +1,271 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: mysql_db
+-- Generation Time: 28.10.2024 klo 14:44
+-- Palvelimen versio: 8.3.0
+-- PHP Version: 8.2.23
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `Talonyhtiö_App`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Autopaikat`
+--
+
+CREATE TABLE `Autopaikat` (
+  `paikka_id` int NOT NULL,
+  `nimi` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `on_varattu` tinyint(1) NOT NULL DEFAULT '0',
+  `rekisterinumero` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `varattu_pvm` datetime NOT NULL,
+  `vapautettu_pvm` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Autot`
+--
+
+CREATE TABLE `Autot` (
+  `auto_id` int NOT NULL,
+  `käyttäjä_id` int DEFAULT NULL,
+  `rekisterinumero` varchar(15) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Kuivaushuonevaraukset`
+--
+
+CREATE TABLE `Kuivaushuonevaraukset` (
+  `varaus_id` int NOT NULL,
+  `käyttäjä_id` int DEFAULT NULL,
+  `kuivaushuone_osa` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `varattu_aika` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Kuivausrummut`
+--
+
+CREATE TABLE `Kuivausrummut` (
+  `kuivausrumpu_id` int NOT NULL,
+  `nimi` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Käyttäjät`
+--
+
+CREATE TABLE `Käyttäjät` (
+  `käyttäjä_id` int NOT NULL,
+  `nimi` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `salasana` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rooli` enum('asukas','admin') COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Vedos taulusta `Käyttäjät`
+--
+
+INSERT INTO `Käyttäjät` (`käyttäjä_id`, `nimi`, `salasana`, `rooli`) VALUES
+(1, 'Pekka Jonkanimiolipekka', '123', 'asukas');
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `LaitteidenVaraus`
+--
+
+CREATE TABLE `LaitteidenVaraus` (
+  `varaus_id` int NOT NULL,
+  `käyttäjä_id` int DEFAULT NULL,
+  `laite_tyyppi` enum('pesukone','kuivausrumpu') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `laite_id` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Pesukoneet`
+--
+
+CREATE TABLE `Pesukoneet` (
+  `pesukone_id` int NOT NULL,
+  `nimi` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Rakenne taululle `Saunavuorot`
+--
+
+CREATE TABLE `Saunavuorot` (
+  `varaus_id` int NOT NULL,
+  `käyttäjä_id` int DEFAULT NULL,
+  `kellonaika` time DEFAULT NULL,
+  `on_vapaana` tinyint(1) DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `Autopaikat`
+--
+ALTER TABLE `Autopaikat`
+  ADD PRIMARY KEY (`paikka_id`);
+
+--
+-- Indexes for table `Autot`
+--
+ALTER TABLE `Autot`
+  ADD PRIMARY KEY (`auto_id`),
+  ADD KEY `käyttäjä_id` (`käyttäjä_id`);
+
+--
+-- Indexes for table `Kuivaushuonevaraukset`
+--
+ALTER TABLE `Kuivaushuonevaraukset`
+  ADD PRIMARY KEY (`varaus_id`),
+  ADD KEY `käyttäjä_id` (`käyttäjä_id`);
+
+--
+-- Indexes for table `Kuivausrummut`
+--
+ALTER TABLE `Kuivausrummut`
+  ADD PRIMARY KEY (`kuivausrumpu_id`);
+
+--
+-- Indexes for table `Käyttäjät`
+--
+ALTER TABLE `Käyttäjät`
+  ADD PRIMARY KEY (`käyttäjä_id`);
+
+--
+-- Indexes for table `LaitteidenVaraus`
+--
+ALTER TABLE `LaitteidenVaraus`
+  ADD PRIMARY KEY (`varaus_id`),
+  ADD KEY `käyttäjä_id` (`käyttäjä_id`);
+
+--
+-- Indexes for table `Pesukoneet`
+--
+ALTER TABLE `Pesukoneet`
+  ADD PRIMARY KEY (`pesukone_id`);
+
+--
+-- Indexes for table `Saunavuorot`
+--
+ALTER TABLE `Saunavuorot`
+  ADD PRIMARY KEY (`varaus_id`),
+  ADD KEY `käyttäjä_id` (`käyttäjä_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `Autopaikat`
+--
+ALTER TABLE `Autopaikat`
+  MODIFY `paikka_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Autot`
+--
+ALTER TABLE `Autot`
+  MODIFY `auto_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Kuivaushuonevaraukset`
+--
+ALTER TABLE `Kuivaushuonevaraukset`
+  MODIFY `varaus_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Kuivausrummut`
+--
+ALTER TABLE `Kuivausrummut`
+  MODIFY `kuivausrumpu_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Käyttäjät`
+--
+ALTER TABLE `Käyttäjät`
+  MODIFY `käyttäjä_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `LaitteidenVaraus`
+--
+ALTER TABLE `LaitteidenVaraus`
+  MODIFY `varaus_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Pesukoneet`
+--
+ALTER TABLE `Pesukoneet`
+  MODIFY `pesukone_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `Saunavuorot`
+--
+ALTER TABLE `Saunavuorot`
+  MODIFY `varaus_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- Rajoitteet vedostauluille
+--
+
+--
+-- Rajoitteet taululle `Autot`
+--
+ALTER TABLE `Autot`
+  ADD CONSTRAINT `Autot_ibfk_1` FOREIGN KEY (`käyttäjä_id`) REFERENCES `Käyttäjät` (`käyttäjä_id`);
+
+--
+-- Rajoitteet taululle `Kuivaushuonevaraukset`
+--
+ALTER TABLE `Kuivaushuonevaraukset`
+  ADD CONSTRAINT `Kuivaushuonevaraukset_ibfk_1` FOREIGN KEY (`käyttäjä_id`) REFERENCES `Käyttäjät` (`käyttäjä_id`);
+
+--
+-- Rajoitteet taululle `LaitteidenVaraus`
+--
+ALTER TABLE `LaitteidenVaraus`
+  ADD CONSTRAINT `LaitteidenVaraus_ibfk_1` FOREIGN KEY (`käyttäjä_id`) REFERENCES `Käyttäjät` (`käyttäjä_id`);
+
+--
+-- Rajoitteet taululle `Saunavuorot`
+--
+ALTER TABLE `Saunavuorot`
+  ADD CONSTRAINT `Saunavuorot_ibfk_1` FOREIGN KEY (`käyttäjä_id`) REFERENCES `Käyttäjät` (`käyttäjä_id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
