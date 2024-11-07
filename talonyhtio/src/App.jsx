@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const [buttons, setButtons] = useState([
-    { label: 'Autopaikka 1', isGreen: true },
-    { label: 'Autopaikka 2', isGreen: true },
-    { label: 'Autopaikka 3', isGreen: true },
-  ]);
+  const [buttons, setButtons] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/parking-spots')
+      .then(response => response.json())
+      .then(data => setButtons(data))
+      .catch(error => console.error('Error fetching parking spots:', error));
+  }, []);
+  
 
   const [washers, setWashers] = useState([
     { label: 'Pesukone 1', isGreen: true },
@@ -62,16 +66,14 @@ function App() {
       <h1>Autopaikat</h1>
       <div className='button-container'>
         {buttons.map((button, index) => (
-          <div key={index} className='button-wrapper'>
-            <button
-              onClick={() => toggleColor(index)}
-              className={`main-button ${button.isGreen ? 'green' : 'red'}`}
-            >
+          <button key={index}
+          onClick={() => toggleColor(index, 'car')} 
+          className={`main-button ${button.isGreen ? 'green' : 'red'}`}>
               {button.label}
             </button>
-          </div>
         ))}
-      </div>
+          </div>
+        
       <h1>Pesukoneet</h1>
       <div className='button-container'>
         {washers.map((button, index) => (
