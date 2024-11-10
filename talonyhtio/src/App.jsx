@@ -3,32 +3,49 @@ import './App.css';
 
 function App() {
   const [buttons, setButtons] = useState([]);
+  const [washers, setWashers] = useState([]);
+  const [dryers, setDryers] = useState([]);
+  const [dryingRoomSections, setDryingRoomSections] = useState([]);
+
+  // useEffect(() => {
+  //   fetch('http://localhost:3001/api/parking-spots')
+  //     .then(response => response.json())
+  //     .then(data => setButtons(data))
+  //     .catch(error => console.error('Error fetching parking spots:', error));
+  // }, []);
+  
+  // useEffect(() => {
+  //   fetch('http://localhost:3001/api/washers')  
+  //     .then(response => response.json())
+  //     .then(data => setWashers(data))
+  //     .catch(error => console.error('Error fetching washers:', error));
+  // }, []);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/parking-spots')
+    fetch('http://localhost:3001/api/complete-data')
       .then(response => response.json())
-      .then(data => setButtons(data))
-      .catch(error => console.error('Error fetching parking spots:', error));
+      .then(data => {
+        setButtons(data.parkingSpots);
+        setWashers(data.washers);
+        setDryers(data.dryers);
+        setDryingRoomSections(data.dryingRoomSections);
+      })
+      .catch(error => console.error('Error fetching parking spots and washers:', error));
   }, []);
   
+ 
+  
 
-  const [washers, setWashers] = useState([
-    { label: 'Pesukone 1', isGreen: true },
-    { label: 'Pesukone 2', isGreen: true },
-    { label: 'Pesukone 3', isGreen: true },
-    
-  ]);
+  // const [dryers, setDryers] = useState([
+  //   { label: 'Kuivausrumpu 1', isGreen: true },
+  //   { label: 'Kuivausrumpu 2', isGreen: true },
+  //   { label: 'Kuivausrumpu 3', isGreen: true },
+  // ]);
 
-  const [dryers, setDryers] = useState([
-    { label: 'Kuivausrumpu 1', isGreen: true },
-    { label: 'Kuivausrumpu 2', isGreen: true },
-    { label: 'Kuivausrumpu 3', isGreen: true },
-  ]);
-
-  const [dryingRoomSections, setDryingRoomSections] = useState([
-    { label: 'Kuivaushuone Osio 1', isGreen: true },
-    { label: 'Kuivaushuone Osio 2', isGreen: true },
-  ]);
+  // const [dryingRoomSections, setDryingRoomSections] = useState([
+  //   { label: 'Kuivaushuone Osio 1', isGreen: true },
+  //   { label: 'Kuivaushuone Osio 2', isGreen: true },
+  // ]);
   
 
   // Funktio napin värin vaihtamiseen
@@ -69,48 +86,46 @@ function App() {
           <button key={index}
           onClick={() => toggleColor(index, 'car')} 
           className={`main-button ${button.isGreen ? 'green' : 'red'}`}>
-              {button.label}
+              {button.nimi}
             </button>
         ))}
           </div>
         
       <h1>Pesukoneet</h1>
       <div className='button-container'>
-        {washers.map((button, index) => (
-          <div key={index} className='button-wrapper'>
-            <button
+        {washers.map((washer, index) => (
+          <button key={index} 
             onClick={() => toggleColor(index, 'washer')}
-            className={`main-button ${button.isGreen ? 'green' : 'red'}`}
-            >
-              {button.label}
-            </button>
-          </div>
+            className={`main-button ${washer.isGreen ? 'green' : 'red'}`}>
+              {washer.nimi}
+          </button>
         ))}
       </div>
+
       <h1>Kuivausrummut</h1>
       <div className='button-container'>
-        {dryers.map((button, index) => (
-          <div key={index} className='button-wrapper'>
-            <button
-            onClick={() => toggleColor(index, 'dryer')}
-            className={`main-button ${button.isGreen ? 'green' : 'red'}`}
-            >
-              {button.label}
-            </button>
-          </div>
+        {dryers.map((dryer, index) => (
+          <button 
+          key={index} 
+          onClick={() => toggleColor(index, 'dryer')}
+          className={`main-button ${dryer.isGreen ? 'green' : 'red'}`}
+          >
+            {dryer.nimi}
+          </button>
         ))}
       </div>
+
       <h1>Kuivaushuone</h1>
       <div className='button-container'>
         {dryingRoomSections.map((section, index) => (
-          <div key={index} className='button-wrapper'>
-            <button
-              onClick={() => toggleColor(index, 'dryingRoom')}
-              className={`main-button ${section.isGreen ? 'green' : 'red'}`}
+          <button 
+          key={index} 
+            onClick={() => toggleColor(index, 'dryingRoom')}
+            className={`main-button ${section.isGreen ? 'green' : 'red'}`}
             >
-              {section.label}
+              {section.kuivaushuone_osa}
             </button>
-          </div>
+          
         ))}
       </div>
     </div>
