@@ -5,6 +5,7 @@ const app = express();
 const port = 3001;
 
 app.use(cors());
+app.use(express.json());
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -21,19 +22,6 @@ db.connect((err) => {
     }
     console.log('Yhteys tietokantaan onnistui.');
 });
-
-// app.get('/api/parking-spots', (req, res) => {
-//     const query = 'SELECT * FROM autopaikat';
-
-//     db.query(query, (err, results) => {
-//         if (err) {
-//             console.error('Virhe tietoja haettaessa:', err);
-//             res.status(500).send('Virhe tietoja haettaessa');
-//             return;
-//         }
-//         res.json(results);
-//     });
-// });
 
 
 app.get('/api/complete-data', (req, res) => {
@@ -82,6 +70,50 @@ app.get('/api/complete-data', (req, res) => {
     });
     });
 });
+
+app.post('/api/reserve-parking', (req, res) => {
+    console.log('POST /api/reserve-parking called');
+    console.log('Request body:', req.body);
+  
+    const { paikka_id, rekisterinumero } = req.body;
+  
+    if (!paikka_id || !rekisterinumero) {
+      console.error('ID tai rekisterinumero puuttuu');
+      return res.status(400).send('ID ja rekisterinumero ovat pakollisia');
+    }
+  
+    const query = 'UPDATE autopaikat SET on_varattu = 1, rekisterinumero = ? WHERE paikka_id = ?';
+    db.query(query, [rekisterinumero, paikka_id], (err, result) => {
+      if (err) {
+        console.error('Virhe autopaikan varaamisessa:', err);
+        return res.status(500).send('Virhe autopaikan varaamisessa');
+      }
+      console.log('Autopaikka varattu onnistuneesti:', result);
+      res.status(200).send('Autopaikka varattu onnistuneesti');
+    });
+  });
+  
+  app.put('/api/release-parking', (req, res) => {
+    console.log('PUT /api/release-parking called');
+    console.log('Request body:', req.body);
+  
+    const { paikka_id } = req.body;
+  
+    if (!paikka_id) {
+      console.error('ID puuttuu');
+      return res.status(400).send('ID on pakollinen');
+    }
+  
+    const query = 'UPDATE autopaikat SET on_varattu = 0, rekisterinumero = NULL WHERE paikka_id = ?';
+    db.query(query, [paikka_id], (err, result) => {
+      if (err) {
+        console.error('Virhe autopaikan vapauttamisessa:', err);
+        return res.status(500).send('Virhe autopaikan vapauttamisessa');
+      }
+      console.log('Autopaikka vapautettu onnistuneesti:', result);
+      res.status(200).send('Autopaikka vapautettu onnistuneesti');
+    });
+  });
 
 
 app.listen(port, () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './App.css';
 
 function App() {
@@ -6,46 +7,55 @@ function App() {
   const [washers, setWashers] = useState([]);
   const [dryers, setDryers] = useState([]);
   const [dryingRoomSections, setDryingRoomSections] = useState([]);
+  const [parkingSpots, setParkingSpots] = useState([]);
+  const [rekisterinumero, setRekisterinumero] = useState('');
 
-  // useEffect(() => {
-  //   fetch('http://localhost:3001/api/parking-spots')
-  //     .then(response => response.json())
-  //     .then(data => setButtons(data))
-  //     .catch(error => console.error('Error fetching parking spots:', error));
-  // }, []);
-  
-  // useEffect(() => {
-  //   fetch('http://localhost:3001/api/washers')  
-  //     .then(response => response.json())
-  //     .then(data => setWashers(data))
-  //     .catch(error => console.error('Error fetching washers:', error));
-  // }, []);
+  const fetchData = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/complete-data');
+      setParkingSpots(response.data.parkingSpots);
+    } catch (error) {
+      console.error('Virhe tietojen haussa:', error);
+    }
+  };
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/complete-data')
-      .then(response => response.json())
-      .then(data => {
-        setButtons(data.parkingSpots);
-        setWashers(data.washers);
-        setDryers(data.dryers);
-        setDryingRoomSections(data.dryingRoomSections);
-      })
-      .catch(error => console.error('Error fetching parking spots and washers:', error));
+     fetchData();
   }, []);
   
- 
-  
+  const handleReserve = async (paikka_id) => {
+    if (!rekisterinumero.trim()) {
+      alert('Syötä rekisterinumero');
+      return;
+    }
+    try {
+      const response = await axios.post('http://localhost:3001/api/reserve-parking', {
+        paikka_id,
+        rekisterinumero
+      });
+      if (response.status === 200) {
+        alert('Autopaikka varattu onnistuneesti!');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Virhe varauksessa:', error);
+      alert('Varauksessa tapahtui virhe');
+    }
+  };
 
-  // const [dryers, setDryers] = useState([
-  //   { label: 'Kuivausrumpu 1', isGreen: true },
-  //   { label: 'Kuivausrumpu 2', isGreen: true },
-  //   { label: 'Kuivausrumpu 3', isGreen: true },
-  // ]);
-
-  // const [dryingRoomSections, setDryingRoomSections] = useState([
-  //   { label: 'Kuivaushuone Osio 1', isGreen: true },
-  //   { label: 'Kuivaushuone Osio 2', isGreen: true },
-  // ]);
+  const handleRelease = async (paikka_id) => {
+    console.log('Release called with id:', paikka_id);
+    try {
+      const response = await axios.put('http://localhost:3001/api/release-parking', { paikka_id });
+      if (response.status === 200) {
+        alert('Autopaikka vapautettu onnistuneesti!');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Virhe vapautuksessa:', error);
+      alert('Vapautuksessa tapahtui virhe');
+    }
+  };
   
 
   // Funktio napin värin vaihtamiseen
@@ -80,7 +90,30 @@ function App() {
 
   return (
     <div className='app-container'>
-      <h1>Autopaikat</h1>
+      <section>
+        <h2>Autopaikat</h2>
+        <input
+         type="text"
+         placeholder="Syötä rekisterinumero"
+         value={rekisterinumero}
+         onChange={(e) => setRekisterinumero(e.target.value)}
+          />
+          <div className='parking-container'>
+          {parkingSpots.map((spot) => (
+          <div key={`parking-${spot.paikka_id}`} className={`parking-spot ${spot.on_varattu ? 'varattu' : 'vapaa'}`}>
+            <h3>{spot.nimi}</h3>
+            <p>{spot.on_varattu ? `Varattu: ${spot.rekisterinumero}` : 'Vapaa'}</p>
+            {spot.on_varattu ? (
+              <button onClick={() => handleRelease(spot.paikka_id)}>Vapauta</button>
+            ) : (
+              <button onClick={() => handleReserve(spot.paikka_id)}>Varaa</button>
+            )}
+          </div>
+            ))}
+          </div>
+      </section>
+
+      {/* <h1>Autopaikat</h1>
       <div className='button-container'>
         {buttons.map((button, index) => (
           <button key={index}
@@ -89,7 +122,9 @@ function App() {
               {button.nimi}
             </button>
         ))}
-          </div>
+          </div> */}
+
+
         
       <h1>Pesukoneet</h1>
       <div className='button-container'>
@@ -129,7 +164,9 @@ function App() {
         ))}
       </div>
     </div>
+    
   );
+  
 }
 
 export default App;
