@@ -149,81 +149,68 @@ app.post('/api/reserve-parking', (req, res) => {
 
 // Kuivausrummun varaus ja vapautus
 app.post('/api/reserve-dryer', (req, res) => {
-  const { kuivausrumpu_id, rekisterinumero } = req.body;
-
-  if (!kuivausrumpu_id || !rekisterinumero) {
-    console.error('Kuivausrumpu ID tai rekisterinumero puuttuu');
-    return res.status(400).send('Kuivausrumpu ID ja rekisterinumero ovat pakollisia');
-  }
-
-  const query = 'UPDATE kuivausrummut SET on_varattu = 1, rekisterinumero = ? WHERE kuivausrumpu_id = ?';
-  db.query(query, [rekisterinumero, kuivausrumpu_id], (err, result) => {
+  const { kuivausrumpu_id } = req.body;
+  const query = 'UPDATE kuivausrummut SET on_varattu = 1 WHERE kuivausrumpu_id = ?';
+  db.query(query, [kuivausrumpu_id], (err, result) => {
     if (err) {
       console.error('Virhe kuivausrummun varaamisessa:', err);
-      return res.status(500).send('Virhe kuivausrummun varaamisessa');
+      res.status(500).send('Virhe kuivausrummun varaamisessa');
+      return;
     }
-    console.log('Kuivausrumpu varattu onnistuneesti:', result);
-    res.status(200).send('Kuivausrumpu varattu onnistuneesti');
+    console.log('kuivausrumpu varattu onnistuneesti:', result);
+    res.status(200).send('kuivausrumpu varattu onnistuneesti');
   });
 });
 
 app.put('/api/release-dryer', (req, res) => {
   const { kuivausrumpu_id } = req.body;
-
-  if (!kuivausrumpu_id) {
-    console.error('Kuivausrumpu ID puuttuu');
-    return res.status(400).send('Kuivausrumpu ID on pakollinen');
+    if (!kuivausrumpu_id) {
+      console.error('kuivausrumpu ID puuttuu');
+      return res.status(400).send('kuivausrumpu ID on pakollinen');
   }
-
-  const query = 'UPDATE kuivausrummut SET on_varattu = 0, rekisterinumero = NULL WHERE kuivausrumpu_id = ?';
-  db.query(query, [kuivausrumpu_id], (err, result) => {
-    if (err) {
-      console.error('Virhe kuivausrummun vapauttamisessa:', err);
-      return res.status(500).send('Virhe kuivausrummun vapauttamisessa');
-    }
-    console.log('Kuivausrumpu vapautettu onnistuneesti:', result);
-    res.status(200).send('Kuivausrumpu vapautettu onnistuneesti');
+    const query = 'UPDATE kuivausrummut SET on_varattu = 0 WHERE kuivausrumpu_id = ?';
+    db.query(query, [kuivausrumpu_id], (err, result) => {
+      if (err) {
+        console.error('Virhe kuivausrummun vapauttamisessa:', err);
+        res.status(500).send('Virhe kuivausrummun vapauttamisessa');
+        return;
+      }
+      console.log('kuivausrumpu vapautettu onnistuneesti:', result);
+      res.status(200).send('kuivausrumpu vapautettu onnistuneesti');
+    });
   });
-});
 
 // Kuivaushuoneen osan varaus ja vapautus
 app.post('/api/reserve-drying-room', (req, res) => {
-  const { kuivaushuone_osa_id, rekisterinumero } = req.body;
-
-  if (!kuivaushuone_osa_id || !rekisterinumero) {
-    console.error('Kuivaushuoneen osa ID tai rekisterinumero puuttuu');
-    return res.status(400).send('Kuivaushuoneen osa ID ja rekisterinumero ovat pakollisia');
-  }
-
-  const query = 'UPDATE kuivaushuonevaraukset SET on_varattu = 1, rekisterinumero = ? WHERE kuivaushuone_osa_id = ?';
-  db.query(query, [rekisterinumero, kuivaushuone_osa_id], (err, result) => {
+  const { käyttäjä_id, huoneenosio_id } = req.body;
+  const query =
+    'UPDATE kuivaushuonevaraukset SET käyttäjä_id = ?, varattu_aika = NOW(), on_varattu = 1 WHERE huoneenosio_id = ? AND on_varattu = 0';
+  db.query(query, [käyttäjä_id, huoneenosio_id], (err, results) => {
     if (err) {
-      console.error('Virhe kuivaushuoneen osan varaamisessa:', err);
-      return res.status(500).send('Virhe kuivaushuoneen osan varaamisessa');
+      console.error(err);
+      res.status(500).send('Tietokantavirhe');
+    } else if (results.affectedRows === 0) {
+      res.status(400).send('Kuivaushuoneen osa ei ole saatavilla.');
+    } else {
+      res.send('Kuivaushuone varattu onnistuneesti.');
     }
-    console.log('Kuivaushuoneen osa varattu onnistuneesti:', result);
-    res.status(200).send('Kuivaushuoneen osa varattu onnistuneesti');
   });
 });
 
 app.put('/api/release-drying-room', (req, res) => {
-  const { kuivaushuone_osa_id } = req.body;
-
-  if (!kuivaushuone_osa_id) {
-    console.error('Kuivaushuoneen osa ID puuttuu');
-    return res.status(400).send('Kuivaushuoneen osa ID on pakollinen');
-  }
-
-  const query = 'UPDATE kuivaushuonevaraukset SET on_varattu = 0, rekisterinumero = NULL WHERE kuivaushuone_osa_id = ?';
-  db.query(query, [kuivaushuone_osa_id], (err, result) => {
+  const { huoneenosio_id } = req.body;
+  const query =
+    'UPDATE kuivaushuonevaraukset SET käyttäjä_id = NULL, varattu_aika = NULL, on_varattu = 0 WHERE huoneenosio_id = ?';
+  db.query(query, [huoneenosio_id], (err, results) => {
     if (err) {
-      console.error('Virhe kuivaushuoneen osan vapauttamisessa:', err);
-      return res.status(500).send('Virhe kuivaushuoneen osan vapauttamisessa');
+      console.error(err);
+      res.status(500).send('Tietokantavirhe');
+    } else {
+      res.send('Kuivaushuone vapautettu onnistuneesti.');
     }
-    console.log('Kuivaushuoneen osa vapautettu onnistuneesti:', result);
-    res.status(200).send('Kuivaushuoneen osa vapautettu onnistuneesti');
   });
 });
+
 
 // Reitti uuden autopaikan lisäämiseen
 app.post('/api/add-parking', (req, res) => {

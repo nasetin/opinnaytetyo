@@ -59,26 +59,22 @@ function App() {
       }
     } catch (error) {
       console.error('Virhe vapautuksessa:', error);
-      alert('Vapautuksessa tapahtui virhe');
+      alert('virhe');
     }
   };
   
   const handleReserveWasher = async (pesukone_id) => {
-    // if (!rekisterinumero.trim()) {
-    //   alert('Syötä rekisterinumero');
-    //   return;
-    // }
     try {
       const response = await axios.post('http://localhost:3001/api/reserve-washer', {
         pesukone_id
       });
       if (response.status === 200) {
         alert('Pesukone varattu onnistuneesti!');
-        fetchData(); // Päivitetään tiedot
+        fetchData(); 
       }
     } catch (error) {
       console.error('Virhe pesukoneen varauksessa:', error);
-      alert('Pesukoneessa tapahtui virhe');
+      alert('virhe');
     }
 };
 
@@ -89,13 +85,72 @@ const handleReleaseWasher = async (pesukone_id) => {
       });
     if (response.status === 200) {
       alert('Pesukone vapautettu onnistuneesti!');
-      fetchData(); // Päivitetään tiedot
+      fetchData(); 
     }
   } catch (error) {
     console.error('Virhe pesukoneen vapautuksessa:', error);
-    alert('Pesukoneessa tapahtui virhe');
+    alert('virhe');
   }
 };
+
+const handleReserveDryer = async (kuivausrumpu_id) => {
+  
+  try {
+    const response = await axios.post('http://localhost:3001/api/reserve-dryer', {
+      kuivausrumpu_id
+    });
+    if (response.status === 200) {
+      alert('kuivausrumpu varattu onnistuneesti!');
+      fetchData(); 
+    }
+  } catch (error) {
+    console.error('Virhe kuivausrummun varauksessa:', error);
+    alert('virhe');
+  }
+};
+
+const handleReleaseDryer = async (kuivausrumpu_id) => {
+try {
+  const response = await axios.put('http://localhost:3001/api/release-dryer', {
+     kuivausrumpu_id
+    });
+  if (response.status === 200) {
+    alert('kuivausrumpu vapautettu onnistuneesti!');
+    fetchData(); 
+  }
+} catch (error) {
+  console.error('Virhe kuivausrummun vapautuksessa:', error);
+  alert('virhe');
+}
+};
+
+const handleReserveDryingRoom = async (huoneenosio_id) => {
+  try {
+    const response = await axios.post('http://localhost:3001/api/reserve-drying-room', { huoneenosio_id });
+    if (response.status === 200) {
+      alert('Kuivaushuoneen osa varattu onnistuneesti!');
+      fetchData();
+    }
+  } catch (error) {
+    console.error('Virhe kuivaushuoneen osan varauksessa:', error);
+    alert('virhe');
+  }
+};
+
+const handleReleaseDryingRoom = async (huoneenosio_id) => {
+  try {
+    const response = await axios.put('http://localhost:3001/api/release-drying-room', {
+       huoneenosio_id
+      });
+    if (response.status === 200) {
+      alert('kuivausrumpu vapautettu onnistuneesti!');
+      fetchData(); 
+    }
+  } catch (error) {
+    console.error('Virhe kuivausrummun vapautuksessa:', error);
+    alert('virhe');
+  }
+  };
 
 
 // const handleAddParking = async () => {
@@ -177,7 +232,7 @@ const handleReleaseWasher = async (pesukone_id) => {
       />
       <button onClick={handleAddParking}>Lisää autopaikka</button> */}
 
-      <section>
+<section>
         <h2>Autopaikat</h2>
         <input
          type="text"
@@ -227,35 +282,42 @@ const handleReleaseWasher = async (pesukone_id) => {
     ))}
   </div>
 </section>
-
-      <h1>Kuivausrummut</h1>
-      <div className='button-container'>
-        {dryers.map((dryer, index) => (
-          <button 
-          key={index} 
-          onClick={() => toggleColor(index, 'dryer')}
-          className={`main-button ${dryer.isGreen ? 'green' : 'red'}`}
-          >
-            {dryer.nimi}
-          </button>
-        ))}
-      </div>
-
-      <h1>Kuivaushuone</h1>
-      <div className='button-container'>
-        {dryingRoomSections.map((section, index) => (
-          <button 
-          key={index} 
-            onClick={() => toggleColor(index, 'dryingRoom')}
-            className={`main-button ${section.isGreen ? 'green' : 'red'}`}
-            >
-              {section.kuivaushuone_osa}
-            </button>
-          
-        ))}
-      </div>
+      <section>
+  <h2>Kuivausrummut</h2>
+      <div className="dryer-container">
+  {dryers.map((dryer) => (
+    <div key={`dryer-${dryer.kuivausrumpu_id}`} className={`dryer ${dryer.on_varattu ? 'varattu' : 'vapaa'}`}>
+      <h3>{dryer.nimi}</h3>
+      <p>{dryer.on_varattu ? `Varattu: ${dryer.varaajan_nimi}` : 'Vapaa'}</p>
+      {dryer.on_varattu ? (
+        <button onClick={() => handleReleaseDryer(dryer.kuivausrumpu_id)}>Vapauta</button>
+      ) : (
+        <button onClick={() => handleReserveDryer(dryer.kuivausrumpu_id)}>Varaa</button>
+      )}
     </div>
-    // </div>
+  ))}
+</div>
+      </section>
+
+      <section>
+        <h2>Kuivaushuone</h2>
+        <div className="dryerRoom-container">
+          {dryingRoomSections.map((section) => (
+            <div key={`section-${section.huoneenosio_id}`} className={`section ${section.on_varattu ? 'varattu' : 'vapaa'}`}>
+              <h3>{section.kuivaushuonenimi}</h3>
+              <p>{section.on_varattu ? `Varattu: ${section.käyttäjä_id}` : 'Vapaa'}</p>
+              {section.on_varattu ? (
+                <button onClick={() => handleReleaseDryingRoom(section.huoneenosio_id)}>Vapauta</button>
+              ) : (
+                <button onClick={() => handleReserveDryingRoom(section.huoneenosio_id)}>Varaa</button>
+              )
+            }
+            </div>
+          ))}
+        </div>
+      </section>
+    
+     </div>
     // </Router>
   );
   
