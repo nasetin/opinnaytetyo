@@ -1,326 +1,128 @@
 import React, { useState, useEffect } from 'react';
-// import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-// import AppAdmin from './appAdmin';
 import axios from 'axios';
 import './App.css';
 
 function App() {
-  const [buttons, setButtons] = useState([]);
-  const [washers, setWashers] = useState([]);
-  const [dryers, setDryers] = useState([]);
-  const [dryingRoomSections, setDryingRoomSections] = useState([]);
-  const [parkingSpots, setParkingSpots] = useState([]);
-  const [rekisterinumero, setRekisterinumero] = useState('');
-  // const [newParkingName, setNewParkingName] = useState('');
+    const [parkingSpots, setParkingSpots] = useState([]);
+    const [washers, setWashers] = useState([]);
+    const [dryers, setDryers] = useState([]);
+    const [dryingRoomSections, setDryingRoomSections] = useState([]);
+    const [rekisterinumero, setRekisterinumero] = useState('');
+    const [varaajanNimi, setVaraajanNimi] = useState('');
 
-  const fetchData = async () => {
-    try {
-      const response = await axios.get('http://localhost:3001/api/complete-data');
-      setParkingSpots(response.data.parkingSpots);
-      setWashers(response.data.washers);
-      setDryers(response.data.dryers);
-      setDryingRoomSections(response.data.dryingRoomSections);
-    } catch (error) {
-      console.error('Virhe tietojen haussa:', error);
-    }
-  };
+    // Tietojen haku backendistä
+    const fetchData = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/api/complete-data');
+            setParkingSpots(response.data.parkingSpots);
+            setWashers(response.data.washers);
+            setDryers(response.data.dryers);
+            setDryingRoomSections(response.data.dryingRoomSections);
+        } catch (error) {
+            console.error('Virhe tietojen haussa:', error);
+        }
+    };
 
-  useEffect(() => {
-     fetchData();
-  }, []);
-  
-  const handleReserve = async (paikka_id) => {
-    if (!rekisterinumero.trim()) {
-      alert('Syötä rekisterinumero');
-      return;
-    }
-    try {
-      const response = await axios.post('http://localhost:3001/api/reserve-parking', {
-        paikka_id,
-        rekisterinumero
-      });
-      if (response.status === 200) {
-        alert('Autopaikka varattu onnistuneesti!');
+    useEffect(() => {
         fetchData();
+    }, []);
+
+    // Yleinen varausfunktio
+    const handleReserve = async (type, id) => {
+        let payload;
+
+        if (type === 'parking') {
+          if (!rekisterinumero.trim()) {
+            alert('Syötä rekisterinumero');
+            return;
+          }
+          payload = { paikka_id: id, rekisterinumero };
+        } else {
+          if (!varaajanNimi.trim()) {
+            alert('Syötä varaajan nimi');
+            return;
+          }
+          payload = { [`${type}_id`]: id, varaajan_nimi: varaajanNimi };
+        }
+
+        try {
+          await axios.post(`http://localhost:3001/api/reserve-${type}`, payload);
+          alert(`${type} varattu onnistuneesti.`);
+          fetchData();
+      } catch (error) {
+          console.error('Virhe varauksessa:', error);
+          alert('Varaus epäonnistui.');
       }
-    } catch (error) {
-      console.error('Virhe varauksessa:', error);
-      alert('Varauksessa tapahtui virhe');
-    }
-  };
 
-  const handleRelease = async (paikka_id) => {
-    console.log('Release called with id:', paikka_id);
-    try {
-      const response = await axios.put('http://localhost:3001/api/release-parking', { paikka_id });
-      if (response.status === 200) {
-        alert('Autopaikka vapautettu onnistuneesti!');
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Virhe vapautuksessa:', error);
-      alert('virhe');
-    }
-  };
-  
-  const handleReserveWasher = async (pesukone_id) => {
-    try {
-      const response = await axios.post('http://localhost:3001/api/reserve-washer', {
-        pesukone_id
-      });
-      if (response.status === 200) {
-        alert('Pesukone varattu onnistuneesti!');
-        fetchData(); 
-      }
-    } catch (error) {
-      console.error('Virhe pesukoneen varauksessa:', error);
-      alert('virhe');
-    }
-};
+    };
 
-const handleReleaseWasher = async (pesukone_id) => {
-  try {
-    const response = await axios.put('http://localhost:3001/api/release-washer', {
-       pesukone_id 
-      });
-    if (response.status === 200) {
-      alert('Pesukone vapautettu onnistuneesti!');
-      fetchData(); 
-    }
-  } catch (error) {
-    console.error('Virhe pesukoneen vapautuksessa:', error);
-    alert('virhe');
-  }
-};
+    return (
+        <div className="container">
+            <h1>Varaukset</h1>
+            <input
+                type="text"
+                placeholder="Syötä rekisterinumero/varaajan nimi"
+                value={rekisterinumero || varaajanNimi}
+                onChange={(e) => setRekisterinumero(e.target.value)}
+            />
+            {/* Autopaikat */}
+            <section className="section parking">
+                <h2>Autopaikat</h2>
+                <div className="items-container">
+                    {parkingSpots.map((spot) => (
+                        <div key={spot.paikka_id} className={`item ${spot.on_varattu ? 'reserved' : 'available'}`}>
+                            <p>{spot.nimi}</p>
+                            <button onClick={() => handleReserve('parking', spot.paikka_id)}>
+                                {spot.on_varattu ? 'Varattu' : 'Varaa'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
 
-const handleReserveDryer = async (kuivausrumpu_id) => {
-  
-  try {
-    const response = await axios.post('http://localhost:3001/api/reserve-dryer', {
-      kuivausrumpu_id
-    });
-    if (response.status === 200) {
-      alert('kuivausrumpu varattu onnistuneesti!');
-      fetchData(); 
-    }
-  } catch (error) {
-    console.error('Virhe kuivausrummun varauksessa:', error);
-    alert('virhe');
-  }
-};
+            <section className="section washers">
+                <h2>Pesukoneet</h2>
+                <div className="items-container">
+                    {washers.map((washer) => (
+                        <div key={washer.pesukone_id} className={`item ${washer.on_varattu ? 'reserved' : 'available'}`}>
+                            <p>{washer.nimi}</p>
+                            <button onClick={() => handleReserve('washer', washer.pesukone_id)}>
+                                {washer.on_varattu ? 'Varattu' : 'Varaa'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
 
-const handleReleaseDryer = async (kuivausrumpu_id) => {
-try {
-  const response = await axios.put('http://localhost:3001/api/release-dryer', {
-     kuivausrumpu_id
-    });
-  if (response.status === 200) {
-    alert('kuivausrumpu vapautettu onnistuneesti!');
-    fetchData(); 
-  }
-} catch (error) {
-  console.error('Virhe kuivausrummun vapautuksessa:', error);
-  alert('virhe');
-}
-};
+            <section className="section dryers">
+                <h2>Kuivausrummut</h2>
+                <div className="items-container">
+                    {dryers.map((dryer) => (
+                        <div key={dryer.kuivausrumpu_id} className={`item ${dryer.on_varattu ? 'reserved' : 'available'}`}>
+                            <p>{dryer.nimi}</p>
+                            <button onClick={() => handleReserve('dryer', dryer.kuivausrumpu_id)}>
+                                {dryer.on_varattu ? 'Varattu' : 'Varaa'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
 
-const handleReserveDryingRoom = async (huoneenosio_id) => {
-  try {
-    const response = await axios.post('http://localhost:3001/api/reserve-drying-room', { huoneenosio_id });
-    if (response.status === 200) {
-      alert('Kuivaushuoneen osa varattu onnistuneesti!');
-      fetchData();
-    }
-  } catch (error) {
-    console.error('Virhe kuivaushuoneen osan varauksessa:', error);
-    alert('virhe');
-  }
-};
-
-const handleReleaseDryingRoom = async (huoneenosio_id) => {
-  try {
-    const response = await axios.put('http://localhost:3001/api/release-drying-room', {
-       huoneenosio_id
-      });
-    if (response.status === 200) {
-      alert('kuivausrumpu vapautettu onnistuneesti!');
-      fetchData(); 
-    }
-  } catch (error) {
-    console.error('Virhe kuivausrummun vapautuksessa:', error);
-    alert('virhe');
-  }
-  };
-
-
-// const handleAddParking = async () => {
-//   if (!newParkingName.trim()) {
-//     alert('Syötä autopaikan nimi');
-//     return;
-//   }
-//   try {
-//     const response = await axios.post('http://localhost:3001/api/add-parking', {
-//       nimi: newParkingName,
-//     });
-//     if (response.status === 201) {
-//       alert('Uusi autopaikka lisätty onnistuneesti!');
-//       setNewParkingName(''); // Tyhjennetään syötekenttä
-//       fetchData(); // Päivitetään autopaikkojen lista
-//     }
-//   } catch (error) {
-//     console.error('Virhe autopaikan lisäämisessä:', error);
-//     alert('Autopaikan lisäämisessä tapahtui virhe');
-//   }
-// };
-
-
-
-
-
-  // Funktio napin värin vaihtamiseen
-  const toggleColor = (index, type) => {
-    if (type === 'car') {
-    setButtons(
-      buttons.map((button, i) =>
-        i === index ? { ...button, isGreen: !button.isGreen } : button
-      )
-    );
-  } else if (type === 'washer') {
-    setWashers(
-      washers.map((button, i) =>
-        i === index ? { ...button, isGreen: !button.isGreen } : button
-      )
-    );
-  } else if (type === 'dryer') {
-    setDryers(
-      dryers.map((button, i) =>
-        i === index ? { ...button, isGreen: !button.isGreen } : button
-      )
-    )
-  }else if (type === 'dryingRoom') {
-    setDryingRoomSections(
-      dryingRoomSections.map((section, i) =>
-        i === index ? { ...section, isGreen: !section.isGreen } : section
-      )
-    );
-  }
-};
-
-  return (
-
-    // <Router>
-    // <div>
-    //   <nav>
-    //     {/* Väliaikainen linkki admin-sivulle */}
-    //     <Link to="/admin">Siirry admin-sivulle</Link>
-    //   </nav>
-
-    //   <Routes>
-    //     <Route path="/" element={<h2>Tervetuloa käyttäjän sivulle!</h2>} />
-    //     <Route path="/admin" element={<AppAdmin />} />
-    //   </Routes>
-    
-    
-    <div className='app-container'>
-
-{/* <h2>Lisää uusi autopaikka</h2>
-      <input
-        type="text"
-        placeholder="Syötä autopaikan nimi"
-        value={newParkingName}
-        onChange={(e) => setNewParkingName(e.target.value)}
-      />
-      <button onClick={handleAddParking}>Lisää autopaikka</button> */}
-
-<section>
-        <h2>Autopaikat</h2>
-        <input
-         type="text"
-         placeholder="Syötä rekisterinumero"
-         value={rekisterinumero}
-         onChange={(e) => setRekisterinumero(e.target.value)}
-          />
-          <div className='parking-container'>
-          {parkingSpots.map((spot) => (
-          <div key={`parking-${spot.paikka_id}`} className={`parking-spot ${spot.on_varattu ? 'varattu' : 'vapaa'}`}>
-            <h3>{spot.nimi}</h3>
-            <p>{spot.on_varattu ? `Varattu: ${spot.rekisterinumero}` : 'Vapaa'}</p>
-            {spot.on_varattu ? (
-              <button onClick={() => handleRelease(spot.paikka_id)}>Vapauta</button>
-            ) : (
-              <button onClick={() => handleReserve(spot.paikka_id)}>Varaa</button>
-            )}
-          </div>
-            ))}
-          </div>
-      </section>
-
-      {/* <h1>Autopaikat</h1>
-      <div className='button-container'>
-        {buttons.map((button, index) => (
-          <button key={index}
-          onClick={() => toggleColor(index, 'car')} 
-          className={`main-button ${button.isGreen ? 'green' : 'red'}`}>
-              {button.nimi}
-            </button>
-        ))}
-          </div> */}
-        
-        <section>
-  <h2>Pesukoneet</h2>
-  <div className='washer-container'>
-    {washers.map((washer) => (
-      <div key={`washer-${washer.pesukone_id}`} className={`washer ${washer.on_varattu ? 'varattu' : 'vapaa'}`}>
-        <h3>{washer.nimi}</h3>
-        <p>{washer.on_varattu ? `Varattu: ${washer.varaajan_nimi}` : 'Vapaa'}</p>
-        {washer.on_varattu ? (
-          <button onClick={() => handleReleaseWasher(washer.pesukone_id)}>Vapauta</button>
-        ) : (
-          <button onClick={() => handleReserveWasher(washer.pesukone_id)}>Varaa</button>
-        )}
-      </div>
-    ))}
-  </div>
-</section>
-      <section>
-  <h2>Kuivausrummut</h2>
-      <div className="dryer-container">
-  {dryers.map((dryer) => (
-    <div key={`dryer-${dryer.kuivausrumpu_id}`} className={`dryer ${dryer.on_varattu ? 'varattu' : 'vapaa'}`}>
-      <h3>{dryer.nimi}</h3>
-      <p>{dryer.on_varattu ? `Varattu: ${dryer.varaajan_nimi}` : 'Vapaa'}</p>
-      {dryer.on_varattu ? (
-        <button onClick={() => handleReleaseDryer(dryer.kuivausrumpu_id)}>Vapauta</button>
-      ) : (
-        <button onClick={() => handleReserveDryer(dryer.kuivausrumpu_id)}>Varaa</button>
-      )}
-    </div>
-  ))}
-</div>
-      </section>
-
-      <section>
-        <h2>Kuivaushuone</h2>
-        <div className="dryerRoom-container">
-          {dryingRoomSections.map((section) => (
-            <div key={`section-${section.huoneenosio_id}`} className={`section ${section.on_varattu ? 'varattu' : 'vapaa'}`}>
-              <h3>{section.kuivaushuonenimi}</h3>
-              <p>{section.on_varattu ? `Varattu: ${section.käyttäjä_id}` : 'Vapaa'}</p>
-              {section.on_varattu ? (
-                <button onClick={() => handleReleaseDryingRoom(section.huoneenosio_id)}>Vapauta</button>
-              ) : (
-                <button onClick={() => handleReserveDryingRoom(section.huoneenosio_id)}>Varaa</button>
-              )
-            }
-            </div>
-          ))}
+            <section className="section drying-room">
+                <h2>Kuivaushuoneet</h2>
+                <div className="items-container">
+                    {dryingRoomSections.map((section) => (
+                        <div key={section.huoneenosio_id} className={`item ${section.on_varattu ? 'reserved' : 'available'}`}>
+                            <p>{section.kuivaushuonenimi}</p>
+                            <button onClick={() => handleReserve('drying-room', section.huoneenosio_id)}>
+                                {section.on_varattu ? 'Varattu' : 'Varaa'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
         </div>
-      </section>
-    
-     </div>
-    // </Router>
-  );
-  
+    );
 }
 
 export default App;
