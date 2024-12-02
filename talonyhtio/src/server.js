@@ -59,17 +59,27 @@ app.get('/api/complete-data', async (req, res) => {
   }
 });
 
-// Yhteinen varaus
-const reserveItem = (table, idField, id, extraField, extraValue, res) => {
-  if (!id || !extraValue) {
-    return res.status(400).send(`Varaus epäonnistui: ${idField} tai ${extraField} puuttuu.`);
+
+const reserveItem = (table, idField, id, res, extraFields = {}) => {
+  // const vapautusAika = new Date(Date.now() + 60 * 60 * 1000); // 1 tunnin varaus
+  const vapautusAika = new Date(Date.now() + 10 * 1000); // 10 sekunttia
+  const setFields = ['on_varattu = 1', 'vapautus_aika = ?'];
+  const values = [vapautusAika];
+
+  console.log('reserveItem kutsuttu'); // Näyttää, että funktio käynnistyy
+    console.log('Saapuneet parametrit:', { table, idField, id, extraFields });
+
+  for (const [key, value] of Object.entries(extraFields)) {
+      setFields.push(`${key} = ?`);
+      values.push(value); // Lisää arvot oikein SQL-kyselyyn
   }
 
-  // const vapautusAika = new Date(Date.now() + 60 * 60 * 1000); // Tunnin varaus
-  const vapautusAika = new Date(Date.now() + 60 * 1000); // 1 minuutin varaus
-  const query = `UPDATE ${table} SET on_varattu = 1, ${extraField} = ?, vapautus_aika = ? WHERE ${idField} = ? AND on_varattu = 0`;
+  values.push(id); // Lisätään id viimeiseksi
 
-  db.query(query, [extraValue, vapautusAika, id], (err, result) => {
+  const query = `UPDATE ${table} SET ${setFields.join(', ')} WHERE ${idField} = ? AND on_varattu = 0`;
+  console.log('SQL-kysely:', query, values); // Debuggausta varten
+
+  db.query(query, values, (err, result) => {
       if (err) {
           console.error(`Virhe varattaessa: ${err}`);
           res.status(500).send('Virhe varattaessa.');
@@ -82,23 +92,28 @@ const reserveItem = (table, idField, id, extraField, extraValue, res) => {
 };
 
 app.post('/api/reserve-parking', (req, res) => {
+  console.log('POST /api/reserve-parking kutsuttu'); // Tämä loki pitäisi näkyä aina, kun frontend lähettää pyynnön
+  console.log('Saapuva data:', req.body); // Näyttää, mitä dataa lähetetään backendille
   const { paikka_id, rekisterinumero } = req.body;
-  reserveItem('autopaikat', 'paikka_id', paikka_id, 'rekisterinumero', rekisterinumero, res);
+  if (!paikka_id || !rekisterinumero) {
+      return res.status(400).send('Paikka ID ja rekisterinumero ovat pakollisia.');
+  }
+  reserveItem('autopaikat', 'paikka_id', paikka_id, res, { rekisterinumero });
 });
 
 app.post('/api/reserve-washer', (req, res) => {
-  const { pesukone_id, varaajan_nimi } = req.body;
-  reserveItem('pesukoneet', 'pesukone_id', pesukone_id, 'varaajan_nimi', varaajan_nimi, res);
+  const { pesukone_id } = req.body;
+  reserveItem('pesukoneet', 'pesukone_id', pesukone_id, res);
 });
 
 app.post('/api/reserve-dryer', (req, res) => {
-  const { kuivausrumpu_id, varaajan_nimi } = req.body;
-  reserveItem('kuivausrummut', 'kuivausrumpu_id', kuivausrumpu_id, 'varaajan_nimi', varaajan_nimi, res);
+  const { kuivausrumpu_id } = req.body;
+  reserveItem('kuivausrummut', 'kuivausrumpu_id', kuivausrumpu_id, res);
 });
 
 app.post('/api/reserve-drying-room', (req, res) => {
-  const { huoneenosio_id, käyttäjä_id } = req.body;
-  reserveItem('kuivaushuonevaraukset', 'huoneenosio_id', huoneenosio_id, 'käyttäjä_id', käyttäjä_id, res);
+  const { huoneenosio_id } = req.body;
+  reserveItem('kuivaushuonevaraukset', 'huoneenosio_id', huoneenosio_id, res);
 });
 
 

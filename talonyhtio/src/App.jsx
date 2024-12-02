@@ -8,7 +8,7 @@ function App() {
     const [dryers, setDryers] = useState([]);
     const [dryingRoomSections, setDryingRoomSections] = useState([]);
     const [rekisterinumero, setRekisterinumero] = useState('');
-    const [varaajanNimi, setVaraajanNimi] = useState('');
+    
 
     // Tietojen haku backendistä
     const fetchData = async () => {
@@ -27,42 +27,42 @@ function App() {
         fetchData();
     }, []);
 
-    // Yleinen varausfunktio
+    
     const handleReserve = async (type, id) => {
         let payload;
-
+    
         if (type === 'parking') {
-          if (!rekisterinumero.trim()) {
-            alert('Syötä rekisterinumero');
-            return;
-          }
-          payload = { paikka_id: id, rekisterinumero };
-        } else {
-          if (!varaajanNimi.trim()) {
-            alert('Syötä varaajan nimi');
-            return;
-          }
-          payload = { [`${type}_id`]: id, varaajan_nimi: varaajanNimi };
+            if (!rekisterinumero.trim()) {
+                alert('Syötä rekisterinumero');
+                return;
+            }
+            payload = { paikka_id: id, rekisterinumero };
+        } else if (type === 'washer') {
+            payload = { pesukone_id: id }; 
+        } else if (type === 'dryer') {
+            payload = { kuivausrumpu_id: id }; 
+        } else if (type === 'drying-room') {
+            payload = { huoneenosio_id: id }; 
         }
-
+    
+        console.log('Lähetettävä data:', { type, payload }); // Debug
+    
         try {
-          await axios.post(`http://localhost:3001/api/reserve-${type}`, payload);
-          alert(`${type} varattu onnistuneesti.`);
-          fetchData();
-      } catch (error) {
-          console.error('Virhe varauksessa:', error);
-          alert('Varaus epäonnistui.');
-      }
-
+            await axios.post(`http://localhost:3001/api/reserve-${type}`, payload);
+            alert('Varattu onnistuneesti.');
+            fetchData();
+        } catch (error) {
+            console.error('Virhe varauksessa:', error);
+            alert('Varaus epäonnistui.');
+        }
     };
-
     return (
         <div className="container">
             <h1>Varaukset</h1>
             <input
                 type="text"
-                placeholder="Syötä rekisterinumero/varaajan nimi"
-                value={rekisterinumero || varaajanNimi}
+                placeholder="Syötä rekisterinumero"
+                value={rekisterinumero}
                 onChange={(e) => setRekisterinumero(e.target.value)}
             />
             {/* Autopaikat */}
