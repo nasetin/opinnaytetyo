@@ -1,8 +1,11 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const cors = require('cors');
 const mysql = require('mysql2');
 const app = express();
 const port = 3001;
+const secretKey = 'salainen-avain';
 
 app.use(cors());
 app.use(express.json());
@@ -23,6 +26,44 @@ db.connect((err) => {
     console.log('Yhteys tietokantaan onnistui.');
 });
 
+app.post('/api/login', async (req, res) => {
+  const { email, salasana } = req.body;
+  if(!email || !salasana) {
+    return res.status(400).send('Email ja salasana vaaditaan');
+  }
+
+  try {
+    const [rows] = await db.promise().query('SELECT * FROM käyttäjät WHERE email = ?', [email]);
+    if(rows.length === 0) {
+      return res.status(401).send('Väärä tunnus tai salasana');
+    }
+    const user = rows[0];
+    const match = await bcrypt.compare(salasana, user.salasana);
+    if(!match) {
+      return res.status(401).send('Väärä tunnust tai salasana');
+    }
+
+    const token = jwt.sign({ käyttäjä_id: user.käyttäjä_id, email: user.email}, secretKey, {expiresIn: '1h'});
+
+    res.json({ token });
+  } catch (error) {
+    console.error('Virhe kirjautumisessa:', error);
+    res.status(500).send('Jotain meni pieleen');
+  }
+});
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authotization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if(!token) return res.status(401).send('Token puuttuu');
+
+  jwt.verify(token, secretKey, (err, user) => {
+    if(err) return res.status(403).send('Virheellinen token');
+    req.user = user;
+    next();
+  });
+}
+
 const updateReservations = async () => {
   const currentTime = new Date();
   const queries = [
@@ -37,27 +78,39 @@ const updateReservations = async () => {
     }
 };
 
+app.get('/api/complete-data', authenticateToken, async (req, res) => {
+  // Jos tänne päästiin, token on voimassa
+  // Hae varausdata ja lähetä se
+  const [parkingSpots] = await db.promise().query('SELECT * FROM autopaikat');
+  const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
+  const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
+  const [dryingRoomSections] = await db.promise().query('SELECT * FROM kuivaushuonevaraukset');
 
-app.get('/api/complete-data', async (req, res) => {
-  try {
-      await updateReservations();
-
-      const [parkingSpots] = await db.promise().query('SELECT * FROM autopaikat');
-        const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
-        const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
-        const [dryingRoomSections] = await db.promise().query('SELECT * FROM kuivaushuonevaraukset');
-
-      res.json({
-          parkingSpots,
-          washers,
-          dryers,
-          dryingRoomSections,
-      });
-  } catch (error) {
-      console.error('Virhe tietojen haussa:', error);
-      res.status(500).json({ message: 'Tietojen haku epäonnistui.' });
-  }
+  res.json({ parkingSpots, washers, dryers, dryingRoomSections });
 });
+
+
+
+// app.get('/api/complete-data', async (req, res) => {
+//   try {
+//       await updateReservations();
+
+//       const [parkingSpots] = await db.promise().query('SELECT * FROM autopaikat');
+//         const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
+//         const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
+//         const [dryingRoomSections] = await db.promise().query('SELECT * FROM kuivaushuonevaraukset');
+
+//       res.json({
+//           parkingSpots,
+//           washers,
+//           dryers,
+//           dryingRoomSections,
+//       });
+//   } catch (error) {
+//       console.error('Virhe tietojen haussa:', error);
+//       res.status(500).json({ message: 'Tietojen haku epäonnistui.' });
+//   }
+// });
 
 
 const reserveItem = (table, idField, id, res, extraFields = {}) => {

@@ -8,9 +8,8 @@ function App() {
     const [dryers, setDryers] = useState([]);
     const [dryingRoomSections, setDryingRoomSections] = useState([]);
     const [rekisterinumero, setRekisterinumero] = useState('');
-    
 
-    // Tietojen haku backendistä
+    // Päivitetty fetchData, joka hakee tokenin ja tekee pyynnön sen kanssa
     const fetchData = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/complete-data');
@@ -20,17 +19,31 @@ function App() {
             setDryingRoomSections(response.data.dryingRoomSections);
         } catch (error) {
             console.error('Virhe tietojen haussa:', error);
+            // Jos virhe on 401 tai 403, voidaan ohjata takaisin kirjautumissivulle
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                window.location.href = '/login';
+            }
         }
     };
 
     useEffect(() => {
+        // Tarkistetaan onko token saatavilla
+        const token = localStorage.getItem('token');
+        if (!token) {
+            // Ei tokenia -> ohjataan kirjautumissivulle
+            window.location.href = '/login';
+            return;
+        }
+
+        // Asetetaan axiosin Authorization-otsikko
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
         fetchData();
     }, []);
 
-    
     const handleReserve = async (type, id) => {
         let payload;
-    
+
         if (type === 'parking') {
             if (!rekisterinumero.trim()) {
                 alert('Syötä rekisterinumero');
@@ -44,9 +57,9 @@ function App() {
         } else if (type === 'drying-room') {
             payload = { huoneenosio_id: id }; 
         }
-    
+
         console.log('Lähetettävä data:', { type, payload }); // Debug
-    
+
         try {
             await axios.post(`http://localhost:3001/api/reserve-${type}`, payload);
             alert('Varattu onnistuneesti.');
@@ -54,8 +67,13 @@ function App() {
         } catch (error) {
             console.error('Virhe varauksessa:', error);
             alert('Varaus epäonnistui.');
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                // Token vanhentunut tai virheellinen -> takaisin kirjautumissivulle
+                window.location.href = '/login';
+            }
         }
     };
+
     return (
         <div className="container">
             <h1>Varaukset</h1>
