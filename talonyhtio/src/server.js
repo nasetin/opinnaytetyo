@@ -26,43 +26,56 @@ db.connect((err) => {
     console.log('Yhteys tietokantaan onnistui.');
 });
 
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).send('Token puuttuu');
+
+  jwt.verify(token, secretKey, (err, user) => {
+      if (err) return res.status(403).send('Virheellinen token');
+      req.user = user;
+      next();
+  });
+}
+
 app.post('/api/login', async (req, res) => {
   const { email, salasana } = req.body;
-  if(!email || !salasana) {
-    return res.status(400).send('Email ja salasana vaaditaan');
+  console.log("Yritetään kirjautua sisään:", email, salasana); // DEBUG
+
+  if (!email || !salasana) {
+      return res.status(400).send('Email ja salasana vaaditaan');
   }
 
   try {
-    const [rows] = await db.promise().query('SELECT * FROM käyttäjät WHERE email = ?', [email]);
-    if(rows.length === 0) {
-      return res.status(401).send('Väärä tunnus tai salasana');
-    }
-    const user = rows[0];
-    const match = await bcrypt.compare(salasana, user.salasana);
-    if(!match) {
-      return res.status(401).send('Väärä tunnust tai salasana');
-    }
+      const [rows] = await db.promise().query('SELECT * FROM käyttäjät WHERE email = ?', [email]);
+      console.log("Hakutulos:", rows); // DEBUG
 
-    const token = jwt.sign({ käyttäjä_id: user.käyttäjä_id, email: user.email}, secretKey, {expiresIn: '1h'});
+      if (rows.length === 0) {
+          console.log("Käyttäjää ei löytynyt tällä emaililla"); // DEBUG
+          return res.status(401).send('Väärä tunnus tai salasana');
+      }
 
-    res.json({ token });
+      const user = rows[0];
+      console.log("Löydetty käyttäjä:", user); // DEBUG
+
+      const match = await bcrypt.compare(salasana, user.salasana);
+      console.log("Vertailun tulos (should be true jos oikein):", match); // DEBUG
+
+      if (!match) {
+          console.log("Salasana ei täsmännyt hashin kanssa"); // DEBUG
+          return res.status(401).send('Väärä tunnus tai salasana');
+      }
+
+      const token = jwt.sign({ käyttäjä_id: user.käyttäjä_id, email: user.email }, secretKey, { expiresIn: '1h' });
+
+      console.log("Kirjautuminen onnistui, token luotu"); // DEBUG
+      res.json({ token });
   } catch (error) {
-    console.error('Virhe kirjautumisessa:', error);
-    res.status(500).send('Jotain meni pieleen');
+      console.error('Virhe kirjautumisessa:', error);
+      res.status(500).send('Jotain meni pieleen');
   }
 });
 
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authotization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if(!token) return res.status(401).send('Token puuttuu');
-
-  jwt.verify(token, secretKey, (err, user) => {
-    if(err) return res.status(403).send('Virheellinen token');
-    req.user = user;
-    next();
-  });
-}
 
 const updateReservations = async () => {
   const currentTime = new Date();
@@ -79,8 +92,8 @@ const updateReservations = async () => {
 };
 
 app.get('/api/complete-data', authenticateToken, async (req, res) => {
-  // Jos tänne päästiin, token on voimassa
-  // Hae varausdata ja lähetä se
+  await updateReservations();
+
   const [parkingSpots] = await db.promise().query('SELECT * FROM autopaikat');
   const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
   const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
@@ -88,30 +101,6 @@ app.get('/api/complete-data', authenticateToken, async (req, res) => {
 
   res.json({ parkingSpots, washers, dryers, dryingRoomSections });
 });
-
-
-
-// app.get('/api/complete-data', async (req, res) => {
-//   try {
-//       await updateReservations();
-
-//       const [parkingSpots] = await db.promise().query('SELECT * FROM autopaikat');
-//         const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
-//         const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
-//         const [dryingRoomSections] = await db.promise().query('SELECT * FROM kuivaushuonevaraukset');
-
-//       res.json({
-//           parkingSpots,
-//           washers,
-//           dryers,
-//           dryingRoomSections,
-//       });
-//   } catch (error) {
-//       console.error('Virhe tietojen haussa:', error);
-//       res.status(500).json({ message: 'Tietojen haku epäonnistui.' });
-//   }
-// });
-
 
 const reserveItem = (table, idField, id, res, extraFields = {}) => {
   // const vapautusAika = new Date(Date.now() + 60 * 60 * 1000); // 1 tunnin varaus

@@ -7,14 +7,21 @@ function LoginPage({ onLogin }) {
 
     const handleLogin = async () => {
         try {
-            const response = await axios.post('http://localhost:3001/api/login', { email, salasana});
-            const { token } = response.data;
-
-            localStorage.setItem('token', token);
-            onLogin();
-        } catch (error) {
-            alert('Kirjautuminen epäonnistui');
-        }
+            const response = await axios.post('http://localhost:3001/api/login', { email, salasana });
+            // Tarkista, palauttaako response data.token -arvon
+            console.log('Login response:', response);
+          
+            if (response.status === 200 && response.data.token) {
+              // Onnistunut kirjautuminen
+              localStorage.setItem('token', response.data.token);
+              window.location.href = '/varaus'; // Ohjataan varaus-sivulle
+            } else {
+              alert('Kirjautuminen epäonnistui.');
+            }
+          } catch (error) {
+            console.error('Virhe kirjautumisessa:', error);
+            alert('Kirjautuminen epäonnistui.');
+          }
     };
 
     return (

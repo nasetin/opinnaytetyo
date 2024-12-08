@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -12,12 +12,11 @@ root.render(
      <Router>
       <Routes>
         {/* Kirjautumissivu */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Varaus-sivu (App) */}
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/varaus" element={<App />} />
 
-        {/* Jos käyttäjä menee osoitteeseen, jota ei ole määritelty */}
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
     </Router>
