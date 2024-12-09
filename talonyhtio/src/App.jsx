@@ -3,13 +3,15 @@ import axios from 'axios';
 import './App.css';
 
 function App() {
+    const [userProfile, setUserProfile] = useState(null);
     const [parkingSpots, setParkingSpots] = useState([]);
     const [washers, setWashers] = useState([]);
     const [dryers, setDryers] = useState([]);
     const [dryingRoomSections, setDryingRoomSections] = useState([]);
     const [rekisterinumero, setRekisterinumero] = useState('');
+    const [saunaVuorot, setSaunaVuorot] = useState([]);
 
-    // Päivitetty fetchData, joka hakee tokenin ja tekee pyynnön sen kanssa
+    
     const fetchData = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/complete-data');
@@ -17,6 +19,8 @@ function App() {
             setWashers(response.data.washers);
             setDryers(response.data.dryers);
             setDryingRoomSections(response.data.dryingRoomSections);
+            setSaunaVuorot(response.data.saunaVuorot);
+            
         } catch (error) {
             console.error('Virhe tietojen haussa:', error);
             // Jos virhe on 401 tai 403, voidaan ohjata takaisin kirjautumissivulle
@@ -26,8 +30,12 @@ function App() {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    }
+
     useEffect(() => {
-        // Tarkistetaan onko token saatavilla
         const token = localStorage.getItem('token');
         if (!token) {
             // Ei tokenia -> ohjataan kirjautumissivulle
@@ -37,6 +45,11 @@ function App() {
 
         // Asetetaan axiosin Authorization-otsikko
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // Käyttäjäntiedot
+        axios.get('http://localhost:3001/api/user-profile')
+        .then(res => setUserProfile(res.data))
+        .catch(err => console.error(err));
 
         fetchData();
     }, []);
@@ -56,6 +69,8 @@ function App() {
             payload = { kuivausrumpu_id: id }; 
         } else if (type === 'drying-room') {
             payload = { huoneenosio_id: id }; 
+        } else if (type === 'sauna') {
+            payload = { varaus_id: id };
         }
 
         console.log('Lähetettävä data:', { type, payload }); // Debug
@@ -75,7 +90,12 @@ function App() {
     };
 
     return (
-        <div className="container">
+            <div className="container">
+        <div>
+            {userProfile && <p>Tervetuloa, {userProfile.nimi}!</p>}
+            <button onClick={handleLogout}>Kirjaudu ulos</button>
+            </div>
+
             <h1>Varaukset</h1>
             <input
                 type="text"
@@ -139,7 +159,22 @@ function App() {
                     ))}
                 </div>
             </section>
-        </div>
+
+            <h2>Saunavuorot</h2>
+                <div className="items-container">
+                    {saunaVuorot.map((vuoro) => (
+                        <div key={vuoro.varaus_id} className={`item ${vuoro.on_varattu ? 'reserved' : 'available'}`}>
+                            <p>{vuoro.päivä} klo {vuoro.kellonaika}</p>
+                            {vuoro.on_varattu
+                                ? <p>Varattu</p>
+                                : <button onClick={() => handleReserve('sauna', vuoro.varaus_id)}>Varaa</button>}
+                        </div>
+                    ))}
+                </div>
+
+
+            </div>
+
     );
 }
 

@@ -98,8 +98,9 @@ app.get('/api/complete-data', authenticateToken, async (req, res) => {
   const [washers] = await db.promise().query('SELECT * FROM pesukoneet');
   const [dryers] = await db.promise().query('SELECT * FROM kuivausrummut');
   const [dryingRoomSections] = await db.promise().query('SELECT * FROM kuivaushuonevaraukset');
+  const [saunaVuorot] = await db.promise().query('SELECT * FROM saunavuorot');
 
-  res.json({ parkingSpots, washers, dryers, dryingRoomSections });
+  res.json({ parkingSpots, washers, dryers, dryingRoomSections, saunaVuorot });
 });
 
 const reserveItem = (table, idField, id, res, extraFields = {}) => {
@@ -108,15 +109,15 @@ const reserveItem = (table, idField, id, res, extraFields = {}) => {
   const setFields = ['on_varattu = 1', 'vapautus_aika = ?'];
   const values = [vapautusAika];
 
-  console.log('reserveItem kutsuttu'); // Näyttää, että funktio käynnistyy
+  console.log('reserveItem kutsuttu');
     console.log('Saapuneet parametrit:', { table, idField, id, extraFields });
 
   for (const [key, value] of Object.entries(extraFields)) {
       setFields.push(`${key} = ?`);
-      values.push(value); // Lisää arvot oikein SQL-kyselyyn
+      values.push(value); 
   }
 
-  values.push(id); // Lisätään id viimeiseksi
+  values.push(id); 
 
   const query = `UPDATE ${table} SET ${setFields.join(', ')} WHERE ${idField} = ? AND on_varattu = 0`;
   console.log('SQL-kysely:', query, values); // Debuggausta varten
@@ -134,8 +135,8 @@ const reserveItem = (table, idField, id, res, extraFields = {}) => {
 };
 
 app.post('/api/reserve-parking', (req, res) => {
-  console.log('POST /api/reserve-parking kutsuttu'); // Tämä loki pitäisi näkyä aina, kun frontend lähettää pyynnön
-  console.log('Saapuva data:', req.body); // Näyttää, mitä dataa lähetetään backendille
+  console.log('POST /api/reserve-parking kutsuttu'); 
+  console.log('Saapuva data:', req.body); 
   const { paikka_id, rekisterinumero } = req.body;
   if (!paikka_id || !rekisterinumero) {
       return res.status(400).send('Paikka ID ja rekisterinumero ovat pakollisia.');
@@ -157,6 +158,27 @@ app.post('/api/reserve-drying-room', (req, res) => {
   const { huoneenosio_id } = req.body;
   reserveItem('kuivaushuonevaraukset', 'huoneenosio_id', huoneenosio_id, res);
 });
+
+app.get('/api/user-profile', authenticateToken, async (req, res) => {
+  const [rows] = await db.promise().query('SELECT nimi, email FROM käyttäjät WHERE käyttäjä_id = ?', [req.user.käyttäjä_id]);
+  if (rows.length === 0) return res.status(404).send('Käyttäjää ei löytynyt');
+  res.json(rows[0]);
+});
+
+app.post('/api/reserve-sauna', authenticateToken, (req, res) => {
+  const { varaus_id } = req.body;
+  if (!varaus_id) return res.status(400).send('Varaus ID vaaditaan');
+
+ 
+  const extraFields = {
+    käyttäjä_id: req.user.käyttäjä_id,
+    varattu_pvm: new Date()
+  };
+
+  reserveItem('saunavuorot', 'varaus_id', varaus_id, res, extraFields);
+});
+
+
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
