@@ -11,7 +11,6 @@ function App() {
     const [rekisterinumero, setRekisterinumero] = useState('');
     const [saunaVuorot, setSaunaVuorot] = useState([]);
 
-    
     const fetchData = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/complete-data');
@@ -20,10 +19,8 @@ function App() {
             setDryers(response.data.dryers);
             setDryingRoomSections(response.data.dryingRoomSections);
             setSaunaVuorot(response.data.saunaVuorot);
-            
         } catch (error) {
             console.error('Virhe tietojen haussa:', error);
-            // Jos virhe on 401 tai 403, voidaan ohjata takaisin kirjautumissivulle
             if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                 window.location.href = '/login';
             }
@@ -38,15 +35,12 @@ function App() {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
-            // Ei tokenia -> ohjataan kirjautumissivulle
             window.location.href = '/login';
             return;
         }
 
-        // Asetetaan axiosin Authorization-otsikko
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Käyttäjäntiedot
         axios.get('http://localhost:3001/api/user-profile')
         .then(res => setUserProfile(res.data))
         .catch(err => console.error(err));
@@ -73,7 +67,7 @@ function App() {
             payload = { varaus_id: id };
         }
 
-        console.log('Lähetettävä data:', { type, payload }); // Debug
+        console.log('Lähetettävä data:', { type, payload });
 
         try {
             await axios.post(`http://localhost:3001/api/reserve-${type}`, payload);
@@ -83,17 +77,19 @@ function App() {
             console.error('Virhe varauksessa:', error);
             alert('Varaus epäonnistui.');
             if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                // Token vanhentunut tai virheellinen -> takaisin kirjautumissivulle
                 window.location.href = '/login';
             }
         }
     };
 
+    // Suodatetaan vain ne saunavuorot, jotka ovat varattavissa (on_varattu=0)
+    // const vapaatSaunaVuorot = saunaVuorot.filter(v => v.on_varattu === 0);
+
     return (
-            <div className="container">
-        <div>
-            {userProfile && <p>Tervetuloa, {userProfile.nimi}!</p>}
-            <button onClick={handleLogout}>Kirjaudu ulos</button>
+        <div className="container">
+            <div>
+                {userProfile && <p>Tervetuloa, {userProfile.nimi}!</p>}
+                <button onClick={handleLogout}>Kirjaudu ulos</button>
             </div>
 
             <h1>Varaukset</h1>
@@ -109,11 +105,12 @@ function App() {
                 <div className="items-container">
                     {parkingSpots.map((spot) => (
                         <div key={spot.paikka_id} className={`item ${spot.on_varattu ? 'reserved' : 'available'}`}>
-                            <p>{spot.nimi}</p>
-                            <button onClick={() => handleReserve('parking', spot.paikka_id)}>
-                                {spot.on_varattu ? 'Varattu' : 'Varaa'}
-                            </button>
-                        </div>
+                        <p>{spot.nimi}</p>
+                        {spot.on_varattu
+                          ? <p>Varattu</p>
+                          : <button onClick={() => handleReserve('parking', spot.paikka_id)}>Varaa</button>
+                        }
+                      </div>
                     ))}
                 </div>
             </section>
@@ -123,11 +120,13 @@ function App() {
                 <div className="items-container">
                     {washers.map((washer) => (
                         <div key={washer.pesukone_id} className={`item ${washer.on_varattu ? 'reserved' : 'available'}`}>
-                            <p>{washer.nimi}</p>
-                            <button onClick={() => handleReserve('washer', washer.pesukone_id)}>
-                                {washer.on_varattu ? 'Varattu' : 'Varaa'}
-                            </button>
-                        </div>
+                        <p>{washer.nimi}</p>
+                        {washer.on_varattu
+                          ? <p>Varattu</p>
+                          : <button onClick={() => handleReserve('washer', washer.pesukone_id)}>Varaa</button>
+                        }
+                      </div>
+                      
                     ))}
                 </div>
             </section>
@@ -137,11 +136,12 @@ function App() {
                 <div className="items-container">
                     {dryers.map((dryer) => (
                         <div key={dryer.kuivausrumpu_id} className={`item ${dryer.on_varattu ? 'reserved' : 'available'}`}>
-                            <p>{dryer.nimi}</p>
-                            <button onClick={() => handleReserve('dryer', dryer.kuivausrumpu_id)}>
-                                {dryer.on_varattu ? 'Varattu' : 'Varaa'}
-                            </button>
-                        </div>
+                        <p>{dryer.nimi}</p>
+                        {dryer.on_varattu
+                          ? <p>Varattu</p>
+                          : <button onClick={() => handleReserve('dryer', dryer.kuivausrumpu_id)}>Varaa</button>
+                        }
+                      </div>
                     ))}
                 </div>
             </section>
@@ -151,30 +151,31 @@ function App() {
                 <div className="items-container">
                     {dryingRoomSections.map((section) => (
                         <div key={section.huoneenosio_id} className={`item ${section.on_varattu ? 'reserved' : 'available'}`}>
-                            <p>{section.kuivaushuonenimi}</p>
-                            <button onClick={() => handleReserve('drying-room', section.huoneenosio_id)}>
-                                {section.on_varattu ? 'Varattu' : 'Varaa'}
-                            </button>
-                        </div>
+                        <p>{section.kuivaushuonenimi}</p>
+                        {section.on_varattu
+                          ? <p>Varattu</p>
+                          : <button onClick={() => handleReserve('drying-room', section.huoneenosio_id)}>Varaa</button>
+                        }
+                      </div>
                     ))}
                 </div>
             </section>
-
-            <h2>Saunavuorot</h2>
+                            <h2>Saunavuorot</h2>
                 <div className="items-container">
-                    {saunaVuorot.map((vuoro) => (
-                        <div key={vuoro.varaus_id} className={`item ${vuoro.on_varattu ? 'reserved' : 'available'}`}>
-                            <p>{vuoro.päivä} klo {vuoro.kellonaika}</p>
-                            {vuoro.on_varattu
-                                ? <p>Varattu</p>
-                                : <button onClick={() => handleReserve('sauna', vuoro.varaus_id)}>Varaa</button>}
-                        </div>
-                    ))}
-                </div>
-
-
+                {saunaVuorot.length === 0 ? (
+                    <p>Ei saunavuoroja</p>
+                ) : (
+                    saunaVuorot.map(vuoro => (
+                    <div key={vuoro.varaus_id} className={`item ${vuoro.on_varattu ? 'reserved' : 'available'}`}>
+                        <p>{vuoro.viikonpaiva} {vuoro.kellonaika}</p>
+                        {vuoro.on_varattu
+                        ? <p>Varattu</p>
+                        : <button onClick={() => handleReserve('sauna', vuoro.varaus_id)}>Varaa</button>}
+                    </div>
+                 ))
+               )}
             </div>
-
+        </div>
     );
 }
 

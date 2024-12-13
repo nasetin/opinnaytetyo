@@ -5,6 +5,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import LoginPage from './LoginPage';
+import AppAdmin from './AppAdmin';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -16,6 +17,7 @@ root.render(
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/varaus" element={<App />} />
+        <Route path="/admin" element={<AppAdmin />} />
 
         <Route path="*" element={<div>404 Not Found</div>} />
       </Routes>
